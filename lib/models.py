@@ -1,29 +1,44 @@
-from sqlalchemy import ForeignKey, Column, Integer, String, MetaData
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base
 
-convention = {
-    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-}
-metadata = MetaData(naming_convention=convention)
-
-Base = declarative_base(metadata=metadata)
-
-class Company(Base):
-    __tablename__ = 'companies'
-
-    id = Column(Integer(), primary_key=True)
-    name = Column(String())
-    founding_year = Column(Integer())
-
-    def __repr__(self):
-        return f'<Company {self.name}>'
+Base = declarative_base()
 
 class Dev(Base):
     __tablename__ = 'devs'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    age = Column(Integer)
+    freebies = relationship("Freebie", back_populates="dev")
 
-    id = Column(Integer(), primary_key=True)
-    name= Column(String())
+    @classmethod
+    def get_freebies(cls, session, dev_id):
+        dev = session.query(cls).filter_by(id=dev_id).first()
+        if dev:
+            return dev.freebies
+        return []
 
-    def __repr__(self):
-        return f'<Dev {self.name}>'
+class Company(Base):
+    __tablename__ = 'companies'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    freebies = relationship("Freebie", back_populates="company")
+
+    @classmethod
+    def get_freebies(cls, session, company_id):
+        company = session.query(cls).filter_by(id=company_id).first()
+        if company:
+            return company.freebies
+        return []
+
+class Freebie(Base):
+    __tablename__ = 'freebies'
+    id = Column(Integer, primary_key=True)
+    item_name = Column(String, nullable=False)
+    value = Column(Integer)
+    dev_id = Column(Integer, ForeignKey('devs.id'))
+    company_id = Column(Integer, ForeignKey('companies.id'))
+
+    dev = relationship("Dev", back_populates="freebies")
+    company = relationship("Company", back_populates="freebies")
+
